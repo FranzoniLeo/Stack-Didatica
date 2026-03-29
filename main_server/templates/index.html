@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Par ou Ímpar</title>
+  <style>
+    :root {
+      --bg: #0f0f12;
+      --surface: #18181c;
+      --border: #2a2a32;
+      --text: #e4e4e7;
+      --text-muted: #71717a;
+      --accent: #22d3ee;
+      --accent-dim: rgba(34, 211, 238, 0.15);
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 2rem;
+      max-width: 520px;
+      width: 100%;
+    }
+    .hidden { display: none !important; }
+    .mode-badge {
+      display: block;
+      text-align: center;
+      padding: 0.2rem 0.5rem;
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      color: var(--accent);
+      background: var(--accent-dim);
+      border-radius: 6px;
+      margin-bottom: 1rem;
+    }
+    h1 { margin: 0 0 0.5rem; font-size: 1.5rem; }
+    .subtitle { color: var(--text-muted); font-size: 0.9rem; margin: 0 0 1.5rem; }
+    .form { display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 1rem; }
+    .form-row { display: flex; gap: 0.75rem; }
+    input[type="number"], input[type="text"], input[type="password"], input[type="email"] {
+      flex: 1;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      font-size: 1rem;
+      color: var(--text);
+    }
+    input:focus { outline: none; border-color: var(--accent); }
+    .btn {
+      background: var(--accent);
+      color: var(--bg);
+      border: none;
+      border-radius: 8px;
+      padding: 0.75rem 1.25rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .btn:hover:not(:disabled) { opacity: 0.9; }
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .btn-full { width: 100%; }
+    .btn-ghost {
+      background: transparent;
+      color: var(--text-muted);
+      border: 1px solid var(--border);
+    }
+    .hint { font-size: 0.8rem; color: var(--text-muted); margin-top: 1rem; }
+    .consultas-title {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin: 1.25rem 0 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .consultas-list { display: flex; flex-direction: column; gap: 0.75rem; max-height: 260px; overflow-y: auto; }
+    .consulta-card {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.875rem 1rem;
+      font-size: 0.95rem;
+    }
+    .consulta-card.pending, .consulta-card.running {
+      border-color: rgba(34, 211, 238, 0.35);
+      background: var(--accent-dim);
+    }
+    .consulta-card.success { border-color: rgba(74, 222, 128, 0.4); color: #4ade80; }
+    .consulta-card.error { border-color: rgba(248, 113, 113, 0.4); color: #f87171; }
+    .elapsed { font-size: 0.85em; opacity: 0.9; }
+    .toolbar { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1rem; align-items: center; }
+    .user-line { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.75rem; }
+    .tabs { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
+    .tabs button {
+      flex: 1;
+      padding: 0.5rem;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--text-muted);
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .tabs button.active { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+    .err-toast {
+      background: rgba(248, 113, 113, 0.12);
+      border: 1px solid rgba(248, 113, 113, 0.35);
+      color: #f87171;
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
+      margin-bottom: 1rem;
+      font-size: 0.9rem;
+    }
+    .btn-logout {
+      position: fixed;
+      top: 1rem;
+      right: 1rem;
+      z-index: 100;
+      background: #dc2626;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 0.5rem 1rem;
+      font-size: 0.875rem;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+    }
+    .btn-logout:hover { background: #b91c1c; }
+    .btn-clear-history {
+      width: 100%;
+      margin-top: 1rem;
+      padding: 0.65rem 1rem;
+      font-size: 0.875rem;
+      font-weight: 600;
+      cursor: pointer;
+      border-radius: 8px;
+      border: 1px solid rgba(248, 113, 113, 0.45);
+      background: rgba(248, 113, 113, 0.08);
+      color: #f87171;
+    }
+    .btn-clear-history:hover { background: rgba(248, 113, 113, 0.18); }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="mode-badge">{{ mode }} (worker)</div>
+    <h1>Par ou Ímpar</h1>
+    <p class="subtitle">Cadastre-se, entre, envie um número (~30s no mock).</p>
+
+    <div id="auth-section">
+      <div class="tabs">
+        <button type="button" class="active" id="tab-login">Entrar</button>
+        <button type="button" id="tab-register">Cadastrar</button>
+      </div>
+      <div id="auth-error" class="err-toast hidden"></div>
+      <form class="form" id="form-login">
+        <input type="email" id="login-email" placeholder="E-mail" required autocomplete="username">
+        <input type="password" id="login-pass" placeholder="Senha" required autocomplete="current-password">
+        <button type="submit" class="btn btn-full">Entrar</button>
+      </form>
+      <form class="form hidden" id="form-register">
+        <input type="email" id="reg-email" placeholder="E-mail" required autocomplete="email">
+        <input type="password" id="reg-pass" placeholder="Senha (mín. 8 caracteres)" required autocomplete="new-password" minlength="8">
+        <button type="submit" class="btn btn-full">Criar conta</button>
+      </form>
+    </div>
+
+    <div id="app-section" class="hidden">
+      <button type="button" class="btn-logout" id="btn-logout">Sair</button>
+      <div class="user-line">Logado como <strong id="logged-email"></strong></div>
+      <div class="toolbar">
+        <button type="button" class="btn" id="btn-list-jobs">exibir consultas anteriores</button>
+      </div>
+      <form class="form" id="form-consulta" style="margin-top: 1rem;">
+        <input type="number" id="number" placeholder="Número" required step="1">
+        <button type="submit" class="btn btn-full" id="btn">Consultar</button>
+      </form>
+      <p class="hint">Consultas ficam associadas à sua conta.</p>
+      <p class="consultas-title">Painel</p>
+      <div class="consultas-list" id="consultas-list"></div>
+      <button type="button" class="btn-clear-history" id="btn-clear-history">Limpar histórico de consultas</button>
+    </div>
+  </div>
+  <script>
+    const TOKEN_KEY = 'access_token';
+    const authSection = document.getElementById('auth-section');
+    const appSection = document.getElementById('app-section');
+    const authError = document.getElementById('auth-error');
+    const formLogin = document.getElementById('form-login');
+    const formRegister = document.getElementById('form-register');
+    const tabLogin = document.getElementById('tab-login');
+    const tabRegister = document.getElementById('tab-register');
+    const consultasList = document.getElementById('consultas-list');
+    const loggedEmail = document.getElementById('logged-email');
+
+    function showAuthError(msg) {
+      authError.textContent = msg;
+      authError.classList.remove('hidden');
+    }
+    function clearAuthError() {
+      authError.classList.add('hidden');
+      authError.textContent = '';
+    }
+
+    function authHeaders() {
+      const t = localStorage.getItem(TOKEN_KEY);
+      const h = { 'Content-Type': 'application/json' };
+      if (t) h['Authorization'] = 'Bearer ' + t;
+      return h;
+    }
+
+    function parseDetail(detail) {
+      if (typeof detail === 'string') return detail;
+      if (Array.isArray(detail)) return detail.map(function (x) { return x.msg || JSON.stringify(x); }).join('; ');
+      return 'Erro na requisição';
+    }
+
+    function apiJson(url, options) {
+      return fetch(url, Object.assign({}, options, {
+        headers: Object.assign({}, authHeaders(), (options && options.headers) || {})
+      })).then(function (r) {
+        return r.json().then(function (data) {
+          if (!r.ok) throw new Error(parseDetail(data.detail) || r.statusText || 'Erro ' + r.status);
+          return data;
+        });
+      });
+    }
+
+    function showApp(email) {
+      authSection.classList.add('hidden');
+      appSection.classList.remove('hidden');
+      loggedEmail.textContent = email || '';
+    }
+
+    function showAuth() {
+      appSection.classList.add('hidden');
+      authSection.classList.remove('hidden');
+      localStorage.removeItem(TOKEN_KEY);
+    }
+
+    tabLogin.addEventListener('click', function () {
+      tabLogin.classList.add('active');
+      tabRegister.classList.remove('active');
+      formLogin.classList.remove('hidden');
+      formRegister.classList.add('hidden');
+      clearAuthError();
+    });
+    tabRegister.addEventListener('click', function () {
+      tabRegister.classList.add('active');
+      tabLogin.classList.remove('active');
+      formRegister.classList.remove('hidden');
+      formLogin.classList.add('hidden');
+      clearAuthError();
+    });
+
+    formLogin.addEventListener('submit', function (e) {
+      e.preventDefault();
+      clearAuthError();
+      var em = document.getElementById('login-email').value.trim();
+      var p = document.getElementById('login-pass').value;
+      apiJson('/auth/login', { method: 'POST', body: JSON.stringify({ email: em, password: p }) })
+        .then(function (data) {
+          localStorage.setItem(TOKEN_KEY, data.access_token);
+          showApp(em);
+        })
+        .catch(function (err) { showAuthError(err.message || 'Falha no login'); });
+    });
+
+    formRegister.addEventListener('submit', function (e) {
+      e.preventDefault();
+      clearAuthError();
+      var em = document.getElementById('reg-email').value.trim();
+      var p = document.getElementById('reg-pass').value;
+      apiJson('/auth/register', { method: 'POST', body: JSON.stringify({ email: em, password: p }) })
+        .then(function () {
+          return apiJson('/auth/login', { method: 'POST', body: JSON.stringify({ email: em, password: p }) });
+        })
+        .then(function (data) {
+          localStorage.setItem(TOKEN_KEY, data.access_token);
+          showApp(em);
+        })
+        .catch(function (err) { showAuthError(err.message || 'Falha no cadastro'); });
+    });
+
+    document.getElementById('btn-logout').addEventListener('click', showAuth);
+
+    function pollJob(jobId, card, number) {
+      var check = function () {
+        apiJson('/jobs/' + jobId)
+          .then(function (data) {
+            if (data.status === 'pending' || data.status === 'running') {
+              card.innerHTML = 'Processando número <strong>' + number + '</strong>...';
+              setTimeout(check, 2000);
+            } else if (data.status === 'completed') {
+              card.classList.remove('pending', 'running');
+              card.classList.add('success');
+              var elapsed = data.elapsed_seconds != null ? data.elapsed_seconds + 's' : '';
+              card.innerHTML = 'Número <strong>' + data.result.number + '</strong> é <strong>' + data.result.result + '</strong>. <span class="elapsed">(' + elapsed + ')</span>';
+            } else {
+              card.classList.remove('pending', 'running');
+              card.classList.add('error');
+              card.innerHTML = 'Erro: ' + (data.error || 'desconhecido');
+            }
+          })
+          .catch(function (err) {
+            card.classList.remove('pending', 'running');
+            card.classList.add('error');
+            card.innerHTML = 'Erro ao verificar: ' + (err.message || 'sem conexão');
+          });
+      };
+      setTimeout(check, 2000);
+    }
+
+    document.getElementById('form-consulta').addEventListener('submit', function (e) {
+      e.preventDefault();
+      var num = document.getElementById('number').value.trim();
+      if (num === '') return;
+      apiJson('/consultar?number=' + encodeURIComponent(num), { method: 'POST' })
+        .then(function (data) {
+          var card = document.createElement('div');
+          card.className = 'consulta-card pending';
+          card.dataset.jobId = data.job_id;
+          card.innerHTML = 'Processando número <strong>' + num + '</strong>...';
+          consultasList.appendChild(card);
+          pollJob(data.job_id, card, num);
+        })
+        .catch(function (err) {
+          var card = document.createElement('div');
+          card.className = 'consulta-card error';
+          card.textContent = 'Erro ao enviar: ' + (err.message || 'sem conexão');
+          consultasList.appendChild(card);
+        });
+    });
+
+    document.getElementById('btn-clear-history').addEventListener('click', function () {
+      if (!confirm('Apagar todo o histórico de consultas desta conta? Esta ação não pode ser desfeita.')) return;
+      apiJson('/me/jobs', { method: 'DELETE' })
+        .then(function (data) {
+          consultasList.innerHTML = '';
+          var ok = document.createElement('div');
+          ok.className = 'consulta-card success';
+          ok.textContent = 'Histórico limpo (' + (data.removed_jobs || 0) + ' job(s) no Redis';
+          if (data.removed_digest_rows != null) {
+            ok.textContent += ', ' + data.removed_digest_rows + ' registo(s) no digest';
+          }
+          ok.textContent += ').';
+          consultasList.appendChild(ok);
+        })
+        .catch(function (err) {
+          var card = document.createElement('div');
+          card.className = 'consulta-card error';
+          card.textContent = err.message || 'Erro ao limpar';
+          consultasList.appendChild(card);
+        });
+    });
+
+    document.getElementById('btn-list-jobs').addEventListener('click', function () {
+      apiJson('/me/jobs')
+        .then(function (data) {
+          consultasList.innerHTML = '';
+          var header = document.createElement('div');
+          header.className = 'consulta-card';
+          header.innerHTML = 'Seus jobs: <strong>' + data.count + '</strong>';
+          consultasList.appendChild(header);
+          data.jobs.forEach(function (job) {
+            var card = document.createElement('div');
+            var elapsed = (job.completed_at && job.created_at) ? Math.round((job.completed_at - job.created_at) * 10) / 10 + 's' : '';
+            card.className = 'consulta-card';
+            if (job.status === 'completed') {
+              card.classList.add('success');
+              card.innerHTML = 'Número <strong>' + job.result.number + '</strong> é <strong>' + job.result.result + '</strong>. <span class="elapsed">(' + elapsed + ')</span>';
+            } else if (job.status === 'failed') {
+              card.classList.add('error');
+              card.innerHTML = 'Erro: ' + (job.error || 'desconhecido');
+            } else {
+              card.classList.add('running');
+              card.innerHTML = 'Processando número <strong>' + job.number + '</strong>...';
+              pollJob(job.id, card, job.number);
+            }
+            consultasList.appendChild(card);
+          });
+        })
+        .catch(function (err) {
+          consultasList.innerHTML = '';
+          var card = document.createElement('div');
+          card.className = 'consulta-card error';
+          card.textContent = err.message || 'Erro ao listar';
+          consultasList.appendChild(card);
+        });
+    });
+
+    (function init() {
+      var t = localStorage.getItem(TOKEN_KEY);
+      if (!t) return;
+      apiJson('/auth/me')
+        .then(function (u) { showApp(u.email); })
+        .catch(function () { showAuth(); });
+    })();
+  </script>
+</body>
+</html>

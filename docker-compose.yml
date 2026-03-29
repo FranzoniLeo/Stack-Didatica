@@ -1,0 +1,69 @@
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+
+  mock:
+    build: .
+    command: uvicorn mock_server.app:app --host 0.0.0.0 --port 8001
+    expose:
+      - "8001"
+
+  main:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      REDIS_URL: redis://redis:6379/0
+      DATABASE_URL: sqlite:////app/data/users.db
+      SECRET_KEY: docker-dev-secret-altere-em-producao
+      # Mesmo ficheiro do worker para poder limpar o digest ao apagar histórico
+      DIGEST_DB_URL: sqlite:////app/digest_data/consultation_digest.db
+    command: uvicorn main_server.main:app --host 0.0.0.0 --port 8000
+    volumes:
+      - main_data:/app/data
+      - digest_data:/app/digest_data
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  worker:
+    build: .
+    env_file:
+      - .env
+    environment:
+      REDIS_URL: redis://redis:6379/0
+      MOCK_SERVER_URL: http://mock:8001
+      DIGEST_DB_URL: sqlite:////app/data/consultation_digest.db
+      DIGEST_TZ: America/Sao_Paulo
+      # Mesmo ficheiro de utilizadores do serviço main (leitura) para o digest poder enviar e-mail
+      USERS_DB_PATH: /app/users_data/users.db
+    command: celery -A worker.celery_app worker --loglevel=info
+    volumes:
+      - digest_data:/app/data
+      - main_data:/app/users_data:ro
+    depends_on:
+      redis:
+        condition: service_healthy
+      mock:
+        condition: service_started
+
+  beat:
+    build: .
+    environment:
+      REDIS_URL: redis://redis:6379/0
+      DIGEST_TZ: America/Sao_Paulo
+    command: celery -A worker.celery_app beat --loglevel=info
+    depends_on:
+      redis:
+        condition: service_healthy
+
+volumes:
+  digest_data:
+  main_data:
