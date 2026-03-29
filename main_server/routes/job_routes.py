@@ -58,6 +58,7 @@ def get_job(job_id: str, current_user: User = Depends(get_current_user)):
         "status": job["status"],
         "result": job.get("result"),
         "error": job.get("error"),
+        "status_message": job.get("status_message"),
         "elapsed_seconds": elapsed,
     }
 

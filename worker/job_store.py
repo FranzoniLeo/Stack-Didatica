@@ -26,6 +26,7 @@ def create(number: int, user_id: str) -> str:
         "status": "pending",
         "result": None,
         "error": None,
+        "status_message": None,
         "created_at": time.time(),
         "completed_at": None,
     }
@@ -45,6 +46,7 @@ def set_running(job_id: str) -> None:
     if data:
         job = json.loads(data)
         job["status"] = "running"
+        job["status_message"] = None
         client.set(key, json.dumps(job), ex=JOB_TTL_SECONDS)
 
 
@@ -57,6 +59,7 @@ def set_completed(job_id: str, result: dict) -> None:
         job["status"] = "completed"
         job["result"] = result
         job["completed_at"] = time.time()
+        job["status_message"] = None
         client.set(key, json.dumps(job), ex=JOB_TTL_SECONDS)
 
 
@@ -69,11 +72,12 @@ def set_failed(job_id: str, error: str) -> None:
         job["status"] = "failed"
         job["error"] = error
         job["completed_at"] = time.time()
+        job["status_message"] = None
         client.set(key, json.dumps(job), ex=JOB_TTL_SECONDS)
 
 
-def reset_for_retry(job_id: str) -> None:
-    """Volta o job para pending antes de reenfileirar (evita mostrar failed entre tentativas)."""
+def reset_for_retry(job_id: str, *, status_message: str) -> None:
+    """Volta o job para pending antes de reenfileirar; guarda mensagem amigável para o cliente (polling)."""
     client = _client()
     key = f"{KEY_PREFIX}{job_id}"
     data = client.get(key)
@@ -82,6 +86,7 @@ def reset_for_retry(job_id: str) -> None:
         job["status"] = "pending"
         job["error"] = None
         job["completed_at"] = None
+        job["status_message"] = status_message
         client.set(key, json.dumps(job), ex=JOB_TTL_SECONDS)
 
 

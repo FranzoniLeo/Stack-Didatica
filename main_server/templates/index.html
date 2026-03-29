@@ -304,7 +304,10 @@
         apiJson('/jobs/' + jobId)
           .then(function (data) {
             if (data.status === 'pending' || data.status === 'running') {
-              card.innerHTML = 'Processando número <strong>' + number + '</strong>...';
+              var pendingMsg = (data.status === 'pending' && data.status_message) ? data.status_message : '';
+              card.innerHTML = pendingMsg
+                ? pendingMsg
+                : 'Processando número <strong>' + number + '</strong>...';
               setTimeout(check, 2000);
             } else if (data.status === 'completed') {
               card.classList.remove('pending', 'running');
@@ -314,7 +317,7 @@
             } else {
               card.classList.remove('pending', 'running');
               card.classList.add('error');
-              card.innerHTML = 'Erro: ' + (data.error || 'desconhecido');
+              card.innerHTML = data.error || 'Erro desconhecido';
             }
           })
           .catch(function (err) {
@@ -386,10 +389,12 @@
               card.innerHTML = 'Número <strong>' + job.result.number + '</strong> é <strong>' + job.result.result + '</strong>. <span class="elapsed">(' + elapsed + ')</span>';
             } else if (job.status === 'failed') {
               card.classList.add('error');
-              card.innerHTML = 'Erro: ' + (job.error || 'desconhecido');
+              card.innerHTML = job.error || 'Erro desconhecido';
             } else {
               card.classList.add('running');
-              card.innerHTML = 'Processando número <strong>' + job.number + '</strong>...';
+              card.innerHTML = (job.status === 'pending' && job.status_message)
+                ? job.status_message
+                : 'Processando número <strong>' + job.number + '</strong>...';
               pollJob(job.id, card, job.number);
             }
             consultasList.appendChild(card);

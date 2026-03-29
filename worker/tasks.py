@@ -14,10 +14,8 @@ logger = logging.getLogger(__name__)
 
 MOCK_SERVER_URL = os.environ.get("MOCK_SERVER_URL", "http://127.0.0.1:8001").rstrip("/")
 TIMEOUT = 40
-# Número máximo de reenvios após falha (Celery: 3 => 1 tentativa inicial + 3 reprocessamentos).
 MAX_RETRIES = int(os.environ.get("JOB_TASK_MAX_RETRIES", "3"))
-# Segundos antes de reenfileirar (0 = volta ao fim da fila o quanto antes).
-RETRY_COUNTDOWN = float(os.environ.get("JOB_RETRY_COUNTDOWN", "2"))
+RETRY_COUNTDOWN = float(os.environ.get("JOB_RETRY_COUNTDOWN", "10"))
 
 
 @celery_app.task(bind=True, max_retries=MAX_RETRIES)
@@ -42,21 +40,29 @@ def process_even_odd(self, job_id: str, number: int) -> None:
                 job_id=job_id,
             )
     except Exception as e:
+        attempt = self.request.retries + 1
+        max_attempts = self.max_retries + 1
         if self.request.retries >= self.max_retries:
-            set_failed(job_id, str(e))
+            set_failed(
+                job_id,
+                "O processo falhou após o número máximo de tentativas.",
+            )
             logger.exception(
                 "Job %s falhou após %s tentativa(s): %s",
                 job_id,
-                self.request.retries + 1,
+                attempt,
                 e,
             )
             raise
-        reset_for_retry(job_id)
+        reset_for_retry(
+            job_id,
+            status_message=f"Erro ao processar requisição, tentativa: {attempt}",
+        )
         logger.warning(
             "Job %s erro (tentativa %s/%s), reenfileirando: %s",
             job_id,
-            self.request.retries + 1,
-            self.max_retries + 1,
+            attempt,
+            max_attempts,
             e,
         )
         raise self.retry(exc=e, countdown=RETRY_COUNTDOWN)

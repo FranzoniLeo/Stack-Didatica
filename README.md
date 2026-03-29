@@ -1,8 +1,6 @@
 # Stack-Didatica: notificações e jobs assíncronos
 
-Aplicação didática que simula **consultas “par/ímpar”** com **processamento em background**: API **REST** (FastAPI), **login e JWT**, fila e estado em **Redis**, worker **Celery**, **agendamento** com **Beat** (digest por e-mail), **cache de resultados** e **deduplicação** por utilizador+número, **reprocessamento** em falhas transitórias. Tudo orquestrado com **Docker Compose**. Utilizadores e histórico para digest usam **SQLite**; o papel **NoSQL** aparece no **Redis** (filas, jobs, cache).
-
-Conceitos trabalhados, em resumo: Docker, agendamento (Beat), Redis (broker + armazenamento de jobs/cache), autenticação REST (JWT), cache pós-processamento, filas e falhas (retries; DLQ explícita como evolução possível), deduplicação.
+Aplicação didática que simula consultas a um servidor com **processamento em background**: API **REST** (FastAPI), **login e JWT**, fila e estado em **Redis**, worker **Celery**, **agendamento** com **Beat** (digest por e-mail), **cache de resultados** e **deduplicação** por utilizador+número, **reprocessamento** em falhas transitórias. Tudo orquestrado com **Docker Compose**. Utilizadores e histórico para digest usam **SQLite** e **Redis** (filas, jobs, cache).
 
 ---
 
