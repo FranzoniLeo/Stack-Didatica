@@ -1,4 +1,4 @@
-# Laboratório: notificações e jobs assíncronos
+# Stack-Didatica: notificações e jobs assíncronos
 
 Aplicação didática que simula **consultas “par/ímpar”** com **processamento em background**: API **REST** (FastAPI), **login e JWT**, fila e estado em **Redis**, worker **Celery**, **agendamento** com **Beat** (digest por e-mail), **cache de resultados** e **deduplicação** por utilizador+número, **reprocessamento** em falhas transitórias. Tudo orquestrado com **Docker Compose**. Utilizadores e histórico para digest usam **SQLite**; o papel **NoSQL** aparece no **Redis** (filas, jobs, cache).
 
