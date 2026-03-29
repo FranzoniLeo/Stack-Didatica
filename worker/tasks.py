@@ -5,6 +5,7 @@ import httpx
 
 from worker.celery_app import celery_app
 from worker.consultation_log import log_completed_consultation
+from worker.dlq import record_dead_letter
 from worker.job_store import get as get_job
 from worker.job_store import reset_for_retry
 from worker.job_store import set_cached_result_for_user_number
@@ -46,6 +47,14 @@ def process_even_odd(self, job_id: str, number: int) -> None:
             set_failed(
                 job_id,
                 "O processo falhou após o número máximo de tentativas.",
+            )
+            job_row = get_job(job_id)
+            record_dead_letter(
+                job_id=job_id,
+                number=number,
+                user_id=(job_row.get("user_id") if job_row else None),
+                attempts=attempt,
+                error_message=str(e),
             )
             logger.exception(
                 "Job %s falhou após %s tentativa(s): %s",

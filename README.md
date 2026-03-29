@@ -12,6 +12,11 @@ docker compose up --build
 
 **URL:** http://localhost:8000
 
+Para ver os registros da DLQ no Redis:
+```bash
+docker compose exec redis redis-cli LRANGE dlq:process_even_odd 0 -1
+```
+
 Para disparar o digest manualmente:
 
 `celery -A worker.celery_app call worker.digest_tasks.send_yesterday_digest`
