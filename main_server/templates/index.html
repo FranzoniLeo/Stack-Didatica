@@ -333,7 +333,11 @@
       e.preventDefault();
       var num = document.getElementById('number').value.trim();
       if (num === '') return;
-      apiJson('/consultar?number=' + encodeURIComponent(num), { method: 'POST' })
+      var url = '/consultar?number=' + encodeURIComponent(num);
+      if (window.crypto && window.crypto.randomUUID) {
+        url += '&consultation_id=' + encodeURIComponent(window.crypto.randomUUID());
+      }
+      apiJson(url, { method: 'POST' })
         .then(function (data) {
           var card = document.createElement('div');
           card.className = 'consulta-card pending';
@@ -360,6 +364,9 @@
           ok.textContent = 'Histórico limpo (' + (data.removed_jobs || 0) + ' job(s) no Redis';
           if (data.removed_digest_rows != null) {
             ok.textContent += ', ' + data.removed_digest_rows + ' registo(s) no digest';
+          }
+          if (data.removed_idempotency_keys != null) {
+            ok.textContent += ', ' + data.removed_idempotency_keys + ' chave(s) de idempotência';
           }
           ok.textContent += ').';
           consultasList.appendChild(ok);

@@ -9,6 +9,7 @@ REDIS_URL = os.environ.get("REDIS_URL", "redis://localhost:6379/0")
 KEY_PREFIX = "job:"
 USER_JOBS_PREFIX = "user_jobs:"
 USER_NUM_PREFIX = "user_num:"
+IDEMP_PREFIX = "idemp:"
 JOB_TTL_SECONDS = 86400
 
 
@@ -16,13 +17,14 @@ def _client() -> redis.Redis:
     return redis.from_url(REDIS_URL, decode_responses=True)
 
 
-def create(number: int, user_id: str) -> str:
+def create(number: int, user_id: str, *, consultation_id: str | None = None) -> str:
     job_id = uuid.uuid4().hex[:12]
     normalized_user_id = user_id.strip()
     job = {
         "id": job_id,
         "user_id": normalized_user_id,
         "number": number,
+        "consultation_id": consultation_id,
         "status": "pending",
         "result": None,
         "error": None,
@@ -113,6 +115,70 @@ def list_by_user(user_id: str) -> list[dict]:
             jobs.append(json.loads(data))
     jobs.sort(key=lambda item: item.get("created_at", 0), reverse=True)
     return jobs
+
+
+def get_job_id_for_consultation(user_id: str, consultation_id: str) -> str | None:
+    client = _client()
+    uid = user_id.strip()
+    cid = consultation_id.strip()
+    if not uid or not cid:
+        return None
+    return client.get(f"{IDEMP_PREFIX}{uid}:{cid}")
+
+
+def try_bind_consultation_to_job(user_id: str, consultation_id: str, job_id: str) -> bool:
+    """Reserva idempotência (SET NX). True se este job_id ficou associado ao consultation_id."""
+    client = _client()
+    uid = user_id.strip()
+    cid = consultation_id.strip()
+    if not uid or not cid:
+        return False
+    return bool(
+        client.set(
+            f"{IDEMP_PREFIX}{uid}:{cid}",
+            job_id,
+            nx=True,
+            ex=JOB_TTL_SECONDS,
+        )
+    )
+
+
+def delete_job_orphan(job_id: str) -> None:
+    """Remove job e referência no set do utilizador (ex.: após perder corrida de idempotência)."""
+    client = _client()
+    key = f"{KEY_PREFIX}{job_id}"
+    data = client.get(key)
+    if data:
+        job = json.loads(data)
+        uid = str(job.get("user_id", "")).strip()
+        if uid:
+            client.srem(f"{USER_JOBS_PREFIX}{uid}", job_id)
+    client.delete(key)
+
+
+def delete_idempotency_keys_for_user(user_id: str) -> int:
+    """Apaga idemp:{uid}:* (ex.: ao limpar histórico)."""
+    client = _client()
+    uid = user_id.strip()
+    if not uid:
+        return 0
+    pattern = f"{IDEMP_PREFIX}{uid}:*"
+    keys = list(client.scan_iter(match=pattern, count=500))
+    if not keys:
+        return 0
+    pipe = client.pipeline(transaction=False)
+    for k in keys:
+        pipe.delete(k)
+    pipe.execute()
+    return len(keys)
+
+
+def delete_idempotency_key(user_id: str, consultation_id: str) -> None:
+    client = _client()
+    uid = user_id.strip()
+    cid = consultation_id.strip()
+    if uid and cid:
+        client.delete(f"{IDEMP_PREFIX}{uid}:{cid}")
 
 
 def get_cached_result_for_user_number(user_id: str, number: int) -> dict | None:
