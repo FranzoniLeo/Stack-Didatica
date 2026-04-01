@@ -86,8 +86,7 @@ async def submit_consultar(
 
     """ caso a consulta já tenha sido processada, retorna o resultado. """
     if cached is not None:
-        # Mantém o contrato do front (job_id + polling) sem chamar o mock.
-        from worker.job_store import set_completed  # import local evita ciclo em alguns ambientes
+        from worker.job_store import set_completed
 
         set_completed(job_id, cached)
     else:

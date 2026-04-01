@@ -9,6 +9,18 @@ services:
       timeout: 3s
       retries: 10
 
+  mongo:
+    image: mongo:7
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   mock:
     build: .
     command: uvicorn mock_server.app:app --host 0.0.0.0 --port 8001
@@ -21,6 +33,8 @@ services:
       - "8000:8000"
     environment:
       REDIS_URL: redis://redis:6379/0
+      MONGODB_URL: mongodb://mongo:27017
+      MONGODB_DB: email_notification
       DATABASE_URL: sqlite:////app/data/users.db
       SECRET_KEY: docker-dev-secret-altere-em-producao
       # Mesmo ficheiro do worker para poder limpar o digest ao apagar histórico
@@ -32,6 +46,8 @@ services:
     depends_on:
       redis:
         condition: service_healthy
+      mongo:
+        condition: service_healthy
 
   worker:
     build: .
@@ -39,6 +55,8 @@ services:
       - .env
     environment:
       REDIS_URL: redis://redis:6379/0
+      MONGODB_URL: mongodb://mongo:27017
+      MONGODB_DB: email_notification
       MOCK_SERVER_URL: http://mock:8001
       DIGEST_DB_URL: sqlite:////app/data/consultation_digest.db
       DIGEST_TZ: America/Sao_Paulo
@@ -50,6 +68,8 @@ services:
       - main_data:/app/users_data:ro
     depends_on:
       redis:
+        condition: service_healthy
+      mongo:
         condition: service_healthy
       mock:
         condition: service_started
@@ -67,3 +87,4 @@ services:
 volumes:
   digest_data:
   main_data:
+  mongo_data:

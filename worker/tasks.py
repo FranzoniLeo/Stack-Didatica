@@ -32,7 +32,7 @@ def process_even_odd(self, job_id: str, number: int) -> None:
         job = get_job(job_id)
         uid = job.get("user_id") if job else None
         if uid:
-            # Cache de deduplicação por usuário+número (TTL igual ao histórico de jobs).
+            # Cache de resultados para evitar processamento desnecessário
             set_cached_result_for_user_number(user_id=str(uid), number=number, result=result)
             log_completed_consultation(
                 user_external_id=str(uid),
