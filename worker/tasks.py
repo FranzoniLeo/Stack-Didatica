@@ -22,8 +22,8 @@ RETRY_COUNTDOWN = float(os.environ.get("JOB_RETRY_COUNTDOWN", "10"))
 @celery_app.task(bind=True, max_retries=MAX_RETRIES)
 def process_even_odd(self, job_id: str, number: int) -> None:
     set_running(job_id)
+    url = f"{MOCK_SERVER_URL}/even-odd/{number}"
     try:
-        url = f"{MOCK_SERVER_URL}/even-odd/{number}"
         with httpx.Client(timeout=TIMEOUT) as client:
             response = client.get(url)
             response.raise_for_status()
@@ -54,7 +54,8 @@ def process_even_odd(self, job_id: str, number: int) -> None:
                 number=number,
                 user_id=(job_row.get("user_id") if job_row else None),
                 attempts=attempt,
-                error_message=str(e),
+                mock_url=url,
+                exception=e,
             )
             logger.exception(
                 "Job %s falhou após %s tentativa(s): %s",

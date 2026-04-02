@@ -12,6 +12,17 @@ docker compose up --build
 
 **URL:** http://localhost:8000
 
+### Superuser
+
+- **Só API no host** (sem Docker): na raiz (com venv ativo).
+```bash 
+python scripts/create_superuser.py
+```
+- **Com Docker**:
+```bash 
+docker compose exec -it main python scripts/create_superuser.py  
+```
+
 Para ver os registros da DLQ no Redis:
 ```bash
 docker compose exec redis redis-cli LRANGE dlq:process_even_odd 0 -1

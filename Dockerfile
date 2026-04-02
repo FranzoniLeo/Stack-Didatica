@@ -14,3 +14,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY main_server/ main_server/
 COPY mock_server/ mock_server/
 COPY worker/ worker/
+COPY scripts/ scripts/

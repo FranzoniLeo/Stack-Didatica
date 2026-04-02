@@ -8,6 +8,7 @@ from fastapi.templating import Jinja2Templates
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 from main_server.database import init_db
+from main_server.routes.admin_dlq_routes import router as admin_dlq_router
 from main_server.routes.auth_routes import router as auth_router
 from main_server.routes.job_routes import router as job_router
 
@@ -15,6 +16,7 @@ app = FastAPI()
 templates = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
 app.include_router(auth_router)
 app.include_router(job_router)
+app.include_router(admin_dlq_router)
 
 
 @app.on_event("startup")

@@ -69,3 +69,13 @@ def get_current_user(
     if user is None:
         raise HTTPException(status_code=401, detail="Usuário não encontrado")
     return user
+
+
+def require_admin(user: User = Depends(get_current_user)) -> User:
+    """Rotas de administração: apenas utilizadores com `is_superuser` (ver `scripts/create_superuser.py`)."""
+    if not user.is_superuser:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Acesso negado: necessário superuser.",
+        )
+    return user
