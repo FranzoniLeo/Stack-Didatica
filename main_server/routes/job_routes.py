@@ -1,7 +1,7 @@
 import uuid as uuid_stdlib
 from enum import Enum
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from main_server.auth_core import get_current_user
 from main_server.models import User
@@ -96,8 +96,17 @@ async def submit_consultar(
         from worker.job_store import set_completed
 
         set_completed(job_id, cached)
-    else:
-        process_even_odd.delay(job_id, number)
+        return {
+            "job_id": job_id,
+            "user_id": uid,
+            "consultation_id": cid,
+            "status": "completed",
+            "deduplicated": False,
+            "result": cached,
+            "message": "Resultado recuperado do cache; processamento não foi enfileirado.",
+        }
+
+    process_even_odd.delay(job_id, number)
     return {
         "job_id": job_id,
         "user_id": uid,
@@ -116,6 +125,11 @@ def get_job(job_id: str, current_user: User = Depends(get_current_user)):
         raise HTTPException(status_code=404, detail="Job não encontrado")
     if job.get("user_id") != str(current_user.id):
         raise HTTPException(status_code=404, detail="Job não encontrado")
+    if job.get("status") == "failed":
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=job.get("error") or "Job falhou.",
+        )
     elapsed = None
     if job.get("completed_at") and job.get("created_at"):
         elapsed = round(job["completed_at"] - job["created_at"], 1)

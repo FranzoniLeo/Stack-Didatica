@@ -355,11 +355,17 @@
       apiJson(url, { method: 'POST' })
         .then(function (data) {
           var card = document.createElement('div');
-          card.className = 'consulta-card pending';
           card.dataset.jobId = data.job_id;
-          card.innerHTML = 'Processando número <strong>' + num + '</strong>...';
           consultasList.appendChild(card);
-          pollJob(data.job_id, card, num);
+          if (data.status === 'completed' && data.result) {
+            var r = data.result;
+            card.className = 'consulta-card success';
+            card.innerHTML = 'Número <strong>' + r.number + '</strong> é <strong>' + r.result + '</strong>. <span class="elapsed">(cache)</span>';
+          } else {
+            card.className = 'consulta-card pending';
+            card.innerHTML = 'Processando número <strong>' + num + '</strong>...';
+            pollJob(data.job_id, card, num);
+          }
         })
         .catch(function (err) {
           var card = document.createElement('div');
