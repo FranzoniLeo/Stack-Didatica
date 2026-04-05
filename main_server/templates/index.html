@@ -103,6 +103,16 @@
     .consulta-card.error { border-color: rgba(248, 113, 113, 0.4); color: #f87171; }
     .elapsed { font-size: 0.85em; opacity: 0.9; }
     .toolbar { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1rem; align-items: center; }
+    .jobs-filter-select {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.45rem 0.75rem;
+      color: var(--text);
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+    .filter-label { font-size: 0.8rem; color: var(--text-muted); margin-left: 0.25rem; }
     .user-line { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.75rem; }
     .tabs { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
     .tabs button {
@@ -185,6 +195,11 @@
       <div class="user-line">Logado como <strong id="logged-email"></strong></div>
       <div class="toolbar">
         <button type="button" class="btn" id="btn-list-jobs">exibir consultas anteriores</button>
+        <select id="jobs-parity-filter" class="jobs-filter-select" title="Jobs concluídos: filtra pelo resultado salvo (par ou ímpar). Outros estados só aparecem em &quot;todos&quot;.">
+          <option value="all" selected>todos</option>
+          <option value="even">pares</option>
+          <option value="odd">ímpares</option>
+        </select>
       </div>
       <form class="form" id="form-consulta" style="margin-top: 1rem;">
         <input type="number" id="number" placeholder="Número" required step="1">
@@ -379,13 +394,20 @@
         });
     });
 
+    function parityLabel(p) {
+      if (p === 'even') return ' (só pares)';
+      if (p === 'odd') return ' (só ímpares)';
+      return '';
+    }
+
     document.getElementById('btn-list-jobs').addEventListener('click', function () {
-      apiJson('/me/jobs')
+      var pf = document.getElementById('jobs-parity-filter').value;
+      apiJson('/me/jobs?parity=' + encodeURIComponent(pf))
         .then(function (data) {
           consultasList.innerHTML = '';
           var header = document.createElement('div');
           header.className = 'consulta-card';
-          header.innerHTML = 'Seus jobs: <strong>' + data.count + '</strong>';
+          header.innerHTML = 'Consultas: <strong>' + data.count + '</strong>' + parityLabel(data.parity || pf);
           consultasList.appendChild(header);
           data.jobs.forEach(function (job) {
             var card = document.createElement('div');

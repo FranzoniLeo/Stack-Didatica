@@ -121,11 +121,23 @@ def get(job_id: str) -> dict | None:
     return _doc_to_job(_jobs_coll().find_one({"id": job_id}))
 
 
-def list_by_user(user_id: str) -> list[dict]:
+def list_by_user(user_id: str, *, parity: str = "all") -> list[dict]:
+    """parity: all | even | odd.
+
+    Para even/odd filtra apenas jobs ``completed`` pelo rótulo persistido em
+    ``result.result`` (ex.: \"par\" / \"ímpar\").
+    """
     normalized_user_id = user_id.strip()
     if not normalized_user_id:
         return []
-    cursor = _jobs_coll().find({"user_id": normalized_user_id}).sort("created_at", -1)
+    filt: dict = {"user_id": normalized_user_id}
+    if parity == "even":
+        filt["status"] = "completed"
+        filt["result.result"] = "par"
+    elif parity == "odd":
+        filt["status"] = "completed"
+        filt["result.result"] = "ímpar"
+    cursor = _jobs_coll().find(filt).sort("created_at", -1)
     return [_doc_to_job(d) for d in cursor if d]
 
 

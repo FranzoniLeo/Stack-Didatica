@@ -1,4 +1,5 @@
 import uuid as uuid_stdlib
+from enum import Enum
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
@@ -21,6 +22,12 @@ from worker.job_store import (
 from worker.tasks import process_even_odd
 
 router = APIRouter()
+
+
+class JobsParityFilter(str, Enum):
+    all = "all"
+    even = "even"
+    odd = "odd"
 
 
 def _normalize_consultation_id(raw: str | None) -> str:
@@ -126,11 +133,25 @@ def get_job(job_id: str, current_user: User = Depends(get_current_user)):
 
 
 @router.get("/me/jobs")
-def get_my_jobs(current_user: User = Depends(get_current_user)):
-    """Lista jobs no Redis do usuário logado."""
+def get_my_jobs(
+    parity: JobsParityFilter = Query(
+        JobsParityFilter.all,
+        description=(
+            "Filtro pelo resultado salvo (result.result em jobs completed): "
+            "all, even (rótulo par), odd (rótulo ímpar)."
+        ),
+    ),
+    current_user: User = Depends(get_current_user),
+):
+    """Lista jobs do utilizador; even/odd restricto a completed com resultado persistido."""
     uid = str(current_user.id)
-    jobs = list_by_user(uid)
-    return {"user_id": uid, "count": len(jobs), "jobs": jobs}
+    jobs = list_by_user(uid, parity=parity.value)
+    return {
+        "user_id": uid,
+        "parity": parity.value,
+        "count": len(jobs),
+        "jobs": jobs,
+    }
 
 
 @router.delete("/me/jobs")
