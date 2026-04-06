@@ -2,7 +2,7 @@ import os
 from datetime import datetime, timedelta, timezone
 
 import bcrypt
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
 from sqlalchemy.orm import Session
@@ -18,7 +18,19 @@ SECRET_KEY = os.environ.get("SECRET_KEY", "troque-em-producao-use-uma-chave-long
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.environ.get("ACCESS_TOKEN_EXPIRE_MINUTES", str(60 * 24 * 7)))
 
+# Cookie HttpOnly (browser): o JS não lê; enviado automaticamente com credentials: 'include'.
+ACCESS_TOKEN_COOKIE = "access_token"
+
 security = HTTPBearer(auto_error=False)
+
+
+def access_token_cookie_max_age_seconds() -> int:
+    return ACCESS_TOKEN_EXPIRE_MINUTES * 60
+
+
+def access_token_cookie_secure() -> bool:
+    """Em produção com HTTPS, defina COOKIE_SECURE=true."""
+    return os.environ.get("COOKIE_SECURE", "").lower() in ("1", "true", "yes")
 
 
 def get_db():
@@ -47,17 +59,21 @@ def create_access_token(*, subject: str) -> str:
 
 
 def get_current_user(
+    request: Request,
     credentials: HTTPAuthorizationCredentials | None = Depends(security),
     db: Session = Depends(get_db),
 ) -> User:
-    if credentials is None or credentials.scheme.lower() != "bearer":
+    token = request.cookies.get(ACCESS_TOKEN_COOKIE)
+    if not token and credentials and credentials.scheme.lower() == "bearer":
+        token = credentials.credentials
+    if not token:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Não autenticado",
             headers={"WWW-Authenticate": "Bearer"},
         )
     try:
-        payload = jwt.decode(credentials.credentials, SECRET_KEY, algorithms=[ALGORITHM])
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         sub = payload.get("sub")
         if sub is None:
             raise HTTPException(status_code=401, detail="Token inválido")

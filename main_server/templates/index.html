@@ -212,7 +212,6 @@
     </div>
   </div>
   <script>
-    const TOKEN_KEY = 'access_token';
     const authSection = document.getElementById('auth-section');
     const appSection = document.getElementById('app-section');
     const authError = document.getElementById('auth-error');
@@ -233,10 +232,7 @@
     }
 
     function authHeaders() {
-      const t = localStorage.getItem(TOKEN_KEY);
-      const h = { 'Content-Type': 'application/json' };
-      if (t) h['Authorization'] = 'Bearer ' + t;
-      return h;
+      return { 'Content-Type': 'application/json' };
     }
 
     function parseDetail(detail) {
@@ -246,7 +242,7 @@
     }
 
     function apiJson(url, options) {
-      return fetch(url, Object.assign({}, options, {
+      return fetch(url, Object.assign({ credentials: 'include' }, options, {
         headers: Object.assign({}, authHeaders(), (options && options.headers) || {})
       })).then(function (r) {
         return r.json().then(function (data) {
@@ -262,10 +258,15 @@
       loggedEmail.textContent = email || '';
     }
 
-    function showAuth() {
+    function showAuthScreen() {
       appSection.classList.add('hidden');
       authSection.classList.remove('hidden');
-      localStorage.removeItem(TOKEN_KEY);
+    }
+
+    function logoutAndShowAuth() {
+      fetch('/auth/logout', { method: 'POST', credentials: 'include' })
+        .catch(function () {})
+        .then(function () { showAuthScreen(); });
     }
 
     tabLogin.addEventListener('click', function () {
@@ -289,8 +290,7 @@
       var em = document.getElementById('login-email').value.trim();
       var p = document.getElementById('login-pass').value;
       apiJson('/auth/login', { method: 'POST', body: JSON.stringify({ email: em, password: p }) })
-        .then(function (data) {
-          localStorage.setItem(TOKEN_KEY, data.access_token);
+        .then(function () {
           showApp(em);
         })
         .catch(function (err) { showAuthError(err.message || 'Falha no login'); });
@@ -305,14 +305,13 @@
         .then(function () {
           return apiJson('/auth/login', { method: 'POST', body: JSON.stringify({ email: em, password: p }) });
         })
-        .then(function (data) {
-          localStorage.setItem(TOKEN_KEY, data.access_token);
+        .then(function () {
           showApp(em);
         })
         .catch(function (err) { showAuthError(err.message || 'Falha no cadastro'); });
     });
 
-    document.getElementById('btn-logout').addEventListener('click', showAuth);
+    document.getElementById('btn-logout').addEventListener('click', logoutAndShowAuth);
 
     function pollJob(jobId, card, number) {
       var check = function () {
@@ -442,11 +441,13 @@
     });
 
     (function init() {
-      var t = localStorage.getItem(TOKEN_KEY);
-      if (!t) return;
       apiJson('/auth/me')
         .then(function (u) { showApp(u.email); })
-        .catch(function () { showAuth(); });
+        .catch(function () {
+          fetch('/auth/logout', { method: 'POST', credentials: 'include' })
+            .catch(function () {})
+            .then(function () { showAuthScreen(); });
+        });
     })();
   </script>
 </body>
