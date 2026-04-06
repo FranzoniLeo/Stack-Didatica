@@ -349,9 +349,6 @@
       var num = document.getElementById('number').value.trim();
       if (num === '') return;
       var url = '/consultar?number=' + encodeURIComponent(num);
-      if (window.crypto && window.crypto.randomUUID) {
-        url += '&consultation_id=' + encodeURIComponent(window.crypto.randomUUID());
-      }
       apiJson(url, { method: 'POST' })
         .then(function (data) {
           var card = document.createElement('div');

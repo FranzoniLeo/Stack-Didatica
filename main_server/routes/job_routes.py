@@ -30,30 +30,14 @@ class JobsParityFilter(str, Enum):
     odd = "odd"
 
 
-def _normalize_consultation_id(raw: str | None) -> str:
-    if raw is None or not str(raw).strip():
-        return str(uuid_stdlib.uuid4())
-    try:
-        return str(uuid_stdlib.UUID(str(raw).strip()))
-    except ValueError:
-        raise HTTPException(
-            status_code=400,
-            detail="consultation_id inválido: use um UUID v4 ou omita para gerar um novo.",
-        )
-
-
 @router.post("/consultar")
 async def submit_consultar(
     number: int = Query(..., description="Número para verificar par/ímpar"),
-    consultation_id: str | None = Query(
-        None,
-        description="UUID da consulta (Omita para o servidor gerar um novo)",
-    ),
     current_user: User = Depends(get_current_user),
 ):
     """Envia uma consulta para o worker (usuário vem do token JWT)."""
     uid = str(current_user.id)
-    cid = _normalize_consultation_id(consultation_id)
+    cid = str(uuid_stdlib.uuid4())
 
     """ Verifica se a consulta já foi enviada com este ID de consulta. """
     existing_job_id = get_job_id_for_consultation(uid, cid)
