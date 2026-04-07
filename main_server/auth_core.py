@@ -20,7 +20,6 @@ ACCESS_TOKEN_EXPIRE_MINUTES = int(os.environ.get("ACCESS_TOKEN_EXPIRE_MINUTES", 
 
 # Cookie HttpOnly (browser): o JS não lê; enviado automaticamente com credentials: 'include'.
 ACCESS_TOKEN_COOKIE = "access_token"
-
 security = HTTPBearer(auto_error=False)
 
 

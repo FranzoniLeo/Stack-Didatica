@@ -7,7 +7,7 @@ Uso: uvicorn mock_server.app:app --host 127.0.0.1 --port 8001
 """
 import asyncio
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, status
 
 SLEEP_SECONDS = 30
 
@@ -22,7 +22,7 @@ async def even_odd(number: int):
     """Dorme 30 segundos e retorna se o número é par ou ímpar."""
     if number == 404:
         raise HTTPException(
-            status_code=422,
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail={
                 "error_code": MOCK_ERROR_RESERVED_NUMBER,
                 "message": (

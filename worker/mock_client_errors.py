@@ -55,7 +55,7 @@ def describe_mock_failure(
         _body, api_error_code, api_message = _parse_http_error_body(resp)
 
         is_reserved = api_error_code == MOCK_ERROR_CODE_RESERVED or (
-            number == MOCK_RESERVED_FAILURE_NUMBER and status == 422
+            number == MOCK_RESERVED_FAILURE_NUMBER and status is not None and 500 <= status < 600
         )
 
         if is_reserved:
